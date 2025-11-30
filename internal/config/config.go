@@ -1,0 +1,48 @@
+package config
+
+import (
+	"fmt"
+	"github.com/joho/godotenv"
+	"log"
+	"os"
+	"time"
+)
+
+func DefaultEnvValues() map[string]string {
+	now := time.Now()
+	year, month, day := now.Date()
+
+	return map[string]string{
+		"AWS_REGION":            "eu-west-3",
+		"AWS_ACCESS_KEY_ID":     "",
+		"AWS_SECRET_ACCESS_KEY": "",
+		"S3_BUCKET_NAME":        "",
+		"S3_PREFIX":             "",
+		"AWS_ACCOUNT_ID":        "",
+		"YEAR":                  fmt.Sprintf("%04d", year),
+		"MONTH":                 fmt.Sprintf("%02d", int(month)),
+		"DAY":                   fmt.Sprintf("%02d", day),
+	}
+}
+
+func LoadConfig() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("No .env file found, continuing with runtime environment variables.")
+	} else {
+		log.Printf(".env file loaded")
+	}
+}
+
+func GetEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		defaultValues := DefaultEnvValues()
+		defaultValue := defaultValues[key]
+		if defaultValue != "" {
+			return defaultValue
+		}
+		return ""
+	}
+	return value
+}
