@@ -57,7 +57,10 @@ func Save(key string, data any) error {
 	}
 	defer f.Close()
 
-	gz := gzip.NewWriter(f)
+	gz, e := gzip.NewWriterLevel(f, gzip.BestSpeed)
+	if e != nil {
+		return e
+	}
 	defer gz.Close()
 
 	encoder := json.NewEncoder(gz)
