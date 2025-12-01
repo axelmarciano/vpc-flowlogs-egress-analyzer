@@ -65,10 +65,10 @@ No Go installation required. Just map your credentials and run.
 
 ```bash
 # 1. Build the image
-make build
+make build docker
 
 # 2. Run the analyzer
-make run
+make run docker
 ```
 
 ### ⚙️ Environment Variables
