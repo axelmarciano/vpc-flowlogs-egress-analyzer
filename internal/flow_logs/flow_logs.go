@@ -181,7 +181,7 @@ func RetrieveVPCFlowLogs() ([]VPCFlowLogRecord, error) {
 		go func(workerID int) {
 			defer wgWorkers.Done()
 
-			local := make([]VPCFlowLogRecord, 0, 20000)
+			local := make([]VPCFlowLogRecord, 0, 100000)
 
 			for key := range fileCh {
 				fmt.Printf("⬇ Worker %d downloading %s\n", workerID, key)
@@ -221,7 +221,7 @@ func RetrieveVPCFlowLogs() ([]VPCFlowLogRecord, error) {
 
 					local = append(local, *rec)
 
-					if len(local) >= 20000 {
+					if len(local) >= 100000 {
 						b := make([]VPCFlowLogRecord, len(local))
 						copy(b, local)
 						batchCh <- b
@@ -270,13 +270,60 @@ func RetrieveVPCFlowLogs() ([]VPCFlowLogRecord, error) {
 	fmt.Println("📦 Reloading full logs from chunks…")
 
 	var all []VPCFlowLogRecord
-	for i := int64(1); i <= chunkIndex; i++ {
-		fn := fmt.Sprintf("%s-part-%05d", cacheKey, i)
-		fmt.Printf("📥 Loading %s\n", fn)
-		part, err := cache.Load[[]VPCFlowLogRecord](fn)
-		if err != nil {
-			return nil, err
+	chunks := int(chunkIndex)
+
+	numWorkers = runtime.NumCPU()
+	if numWorkers < 2 {
+		numWorkers = 2
+	}
+	fmt.Printf("⚙️ Using %d cache loader workers\n", numWorkers)
+
+	type chunkResult struct {
+		index int
+		data  []VPCFlowLogRecord
+		err   error
+	}
+
+	jobs := make(chan int, chunks)
+	results := make(chan chunkResult, chunks)
+
+	var wg sync.WaitGroup
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			for idx := range jobs {
+				fn := fmt.Sprintf("%s-part-%05d", cacheKey, idx)
+				fmt.Printf("📥 Worker %d loading %s\n", workerID, fn)
+
+				part, err := cache.Load[[]VPCFlowLogRecord](fn)
+				results <- chunkResult{index: idx, data: part, err: err}
+			}
+		}(w)
+	}
+
+	for i := 1; i <= chunks; i++ {
+		jobs <- i
+	}
+	close(jobs)
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	allParts := make([][]VPCFlowLogRecord, chunks)
+
+	for r := range results {
+		if r.err != nil {
+			return nil, r.err
 		}
+		allParts[r.index-1] = r.data
+	}
+
+	for _, part := range allParts {
 		all = append(all, part...)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"vpc_flowlogs_egress_analyzer/internal/cost"
+	"vpc_flowlogs_egress_analyzer/internal/ipInfo"
 )
 
 func Analyze() {
@@ -37,13 +38,10 @@ func Analyze() {
 		bytes := r.Bytes
 		gb := float64(bytes) / (1024 * 1024 * 1024)
 		costUSD := gb * costPerGB
-
 		ip := r.DstAddr
 
 		if _, exists := summary.ByIP[ip]; !exists {
-			summary.ByIP[ip] = &IPStats{
-				Direction: "egress",
-			}
+			summary.ByIP[ip] = &IPStats{Direction: "egress"}
 		}
 
 		stat := summary.ByIP[ip]
@@ -51,7 +49,6 @@ func Analyze() {
 		stat.GB += gb
 		stat.CostUSD += costUSD
 		stat.ConnectionNum++
-
 		totalBytes += bytes
 	}
 
@@ -59,8 +56,27 @@ func Analyze() {
 	summary.Total.GB = float64(totalBytes) / (1024 * 1024 * 1024)
 	summary.Total.CostUSD = summary.Total.GB * costPerGB
 
-	saveAnalysisToFile(summary)
+	ips := make([]string, 0, len(summary.ByIP))
+	for ip := range summary.ByIP {
+		ips = append(ips, ip)
+	}
+	sort.Slice(ips, func(i, j int) bool {
+		return summary.ByIP[ips[i]].GB > summary.ByIP[ips[j]].GB
+	})
+	if len(ips) > 50 {
+		ips = ips[:50]
+	}
 
+	for _, ip := range ips {
+		info, err := ipInfo.GetIpInfo(ip)
+		if err == nil {
+			summary.ByIP[ip].IpInfo = info
+		} else {
+			fmt.Println("⚠️  Failed to get IP info for", ip, ":", err)
+		}
+	}
+
+	saveAnalysisToFile(summary)
 	printAnalysisSummary(summary)
 }
 
@@ -74,6 +90,7 @@ func saveAnalysisToFile(summary AnalysisSummary) {
 			GB:            st.GB,
 			CostUSD:       st.CostUSD,
 			ConnectionNum: st.ConnectionNum,
+			IpInfo:        st.IpInfo,
 		})
 	}
 

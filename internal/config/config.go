@@ -22,6 +22,7 @@ func DefaultEnvValues() map[string]string {
 		"YEAR":                  fmt.Sprintf("%04d", year),
 		"MONTH":                 fmt.Sprintf("%02d", int(month)),
 		"DAY":                   fmt.Sprintf("%02d", day),
+		"IP_INFO_API_KEY":       "",
 	}
 }
 

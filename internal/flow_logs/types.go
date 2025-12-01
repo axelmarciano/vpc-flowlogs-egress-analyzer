@@ -1,5 +1,7 @@
 package flow_logs
 
+import "vpc_flowlogs_egress_analyzer/internal/ipInfo"
+
 type VPCFlowLogRecord struct {
 	Version     int
 	AccountID   string
@@ -37,11 +39,12 @@ type AnalysisSummary struct {
 }
 
 type IPStats struct {
-	Direction     string  `json:"direction"`
-	Bytes         int     `json:"bytes"`
-	GB            float64 `json:"gb"`
-	CostUSD       float64 `json:"cost_usd"`
-	ConnectionNum int     `json:"connection_count"`
+	Direction     string
+	Bytes         int
+	GB            float64
+	CostUSD       float64
+	ConnectionNum int
+	IpInfo        *ipInfo.IpInfoResponse
 }
 
 type IPEntry struct {
@@ -50,5 +53,6 @@ type IPEntry struct {
 	Bytes         int     `json:"bytes"`
 	GB            float64 `json:"gb"`
 	CostUSD       float64 `json:"cost_usd"`
-	ConnectionNum int     `json:"connection_count"`
+	ConnectionNum int     `json:"connection_num"`
+	IpInfo        any     `json:"ipinfo"`
 }
