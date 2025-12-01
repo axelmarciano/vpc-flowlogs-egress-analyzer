@@ -217,7 +217,6 @@ func RetrieveVPCFlowLogs() ([]VPCFlowLogRecord, error) {
 					}
 
 					rec.Direction = FlowDirection(*rec)
-					rec.GB = float64(rec.Bytes) / (1024 * 1024 * 1024)
 
 					local = append(local, *rec)
 

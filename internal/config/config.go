@@ -23,6 +23,7 @@ func DefaultEnvValues() map[string]string {
 		"MONTH":                 fmt.Sprintf("%02d", int(month)),
 		"DAY":                   fmt.Sprintf("%02d", day),
 		"IP_INFO_API_KEY":       "",
+		"NAT_EIPS_LIST":         "", // Comma-separated list of known NAT Gateway EIPs
 	}
 }
 

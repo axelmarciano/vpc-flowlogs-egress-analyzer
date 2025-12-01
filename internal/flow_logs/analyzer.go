@@ -3,6 +3,7 @@ package flow_logs
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"vpc_flowlogs_egress_analyzer/internal/cost"
@@ -12,7 +13,7 @@ import (
 func Analyze() {
 	logs, err := RetrieveVPCFlowLogs()
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("CRITICAL: %v", err))
 	}
 
 	_, _, region, _, day, month, year, _ := getFlowLogConfig()
@@ -30,6 +31,8 @@ func Analyze() {
 
 	var totalBytes int
 
+	fmt.Println("🔍 Analyzing traffic patterns...")
+
 	for _, r := range logs {
 		if r.Direction != "egress" {
 			continue
@@ -38,7 +41,11 @@ func Analyze() {
 		bytes := r.Bytes
 		gb := float64(bytes) / (1024 * 1024 * 1024)
 		costUSD := gb * costPerGB
-		ip := r.DstAddr
+
+		ip := r.PktDstAddr
+		if ip == "" || ip == "-" {
+			ip = r.DstAddr
+		}
 
 		if _, exists := summary.ByIP[ip]; !exists {
 			summary.ByIP[ip] = &IPStats{Direction: "egress"}
@@ -49,6 +56,11 @@ func Analyze() {
 		stat.GB += gb
 		stat.CostUSD += costUSD
 		stat.ConnectionNum++
+
+		if r.PktDstAwsService != "-" && r.PktDstAwsService != "" {
+			stat.AwsService = r.PktDstAwsService
+		}
+
 		totalBytes += bytes
 	}
 
@@ -63,16 +75,20 @@ func Analyze() {
 	sort.Slice(ips, func(i, j int) bool {
 		return summary.ByIP[ips[i]].GB > summary.ByIP[ips[j]].GB
 	})
-	if len(ips) > 50 {
-		ips = ips[:50]
+
+	topLimit := 50
+	if len(ips) < topLimit {
+		topLimit = len(ips)
 	}
 
-	for _, ip := range ips {
+	fmt.Printf("🌍 Enriching top %d IPs with geo/ASN data...\n", topLimit)
+	for i := 0; i < topLimit; i++ {
+		ip := ips[i]
 		info, err := ipInfo.GetIpInfo(ip)
 		if err == nil {
 			summary.ByIP[ip].IpInfo = info
 		} else {
-			fmt.Println("⚠️  Failed to get IP info for", ip, ":", err)
+			log.Printf("⚠️ Warning: failed to get IpInfo for %s: %v", ip, err)
 		}
 	}
 
@@ -85,6 +101,7 @@ func saveAnalysisToFile(summary AnalysisSummary) {
 	for ip, st := range summary.ByIP {
 		entries = append(entries, IPEntry{
 			IP:            ip,
+			AwsService:    st.AwsService,
 			Direction:     st.Direction,
 			Bytes:         st.Bytes,
 			GB:            st.GB,
@@ -124,25 +141,22 @@ func saveAnalysisToFile(summary AnalysisSummary) {
 		return
 	}
 
-	fmt.Println("💾 Saved analysis to result.json (sorted by GB desc)")
+	fmt.Println("💾 Saved detailed analysis to result.json")
 }
 
 func printAnalysisSummary(s AnalysisSummary) {
-	fmt.Println("=================================================================")
-	fmt.Printf("VPC Flow Logs Summary for %s-%s-%s (Region: %s)\n",
-		s.Year, s.Month, s.Day, s.Region)
+	fmt.Println("\n=================================================================")
+	fmt.Printf("📊 VPC Egress Cost Analysis | %s-%s-%s | %s\n", s.Year, s.Month, s.Day, s.Region)
 	fmt.Println("=================================================================")
 
 	totalIPs := len(s.ByIP)
 
-	fmt.Printf(
-		"➡️  Egressed to %d unique IPs | Total: %.3f GB | Estimated NAT Cost: $%.4f\n",
-		totalIPs,
-		s.Total.GB,
-		s.Total.CostUSD,
-	)
+	fmt.Printf("💰 Total Estimated NAT Cost:   $%.2f\n", s.Total.CostUSD)
+	fmt.Printf("📡 Total Data Processed:       %.2f GB\n", s.Total.GB)
+	fmt.Printf("🎯 Unique Destination IPs:     %d\n", totalIPs)
 
-	fmt.Printf("   NAT Pricing: %.3f $/GB\n", s.CostPerGBUSD)
-
+	fmt.Println("-----------------------------------------------------------------")
+	fmt.Println("💡 Optimization Hint: Look for 'S3' or 'DYNAMODB' in result.json")
+	fmt.Println("   Use Gateway Endpoints (free) instead of NAT (paid) for these.")
 	fmt.Println("=================================================================")
 }
