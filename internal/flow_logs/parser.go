@@ -93,26 +93,35 @@ func IsPrivateIP(ipStr string) bool {
 }
 
 func FlowDirection(r VPCFlowLogRecord) string {
-	src := r.PktSrcAddr
-	dst := r.PktDstAddr
-	if dst == "" || src == "" {
+	src := r.SrcAddr
+	dst := r.DstAddr
+
+	pktDst := r.PktDstAddr
+
+	if src == "" || dst == "" || src == "-" || dst == "-" {
 		return "other"
 	}
 
 	srcIsPrivate := IsPrivateIP(src)
 	dstIsPrivate := IsPrivateIP(dst)
-	dstIsNatEIP := IsNatIP(dst)
 
-	if srcIsPrivate && !dstIsPrivate && !dstIsNatEIP {
+	srcIsNat := IsNatIP(src)
+	dstIsNat := IsNatIP(dst)
+
+	if srcIsNat && !dstIsPrivate {
 		return "egress"
 	}
 
-	if !srcIsPrivate && dstIsPrivate {
-		return "ingress"
+	if dstIsNat && pktDst != "" && !IsPrivateIP(pktDst) && srcIsPrivate {
+		return "egress"
 	}
 
 	if srcIsPrivate && dstIsPrivate {
-		return "internal"
+		return "local"
+	}
+
+	if !srcIsPrivate && dstIsNat {
+		return "ingress"
 	}
 
 	return "other"
