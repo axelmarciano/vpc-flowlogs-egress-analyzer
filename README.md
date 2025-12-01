@@ -80,6 +80,7 @@ Create a `.env` file or pass these to Docker:
 | `S3_BUCKET_NAME` |    ✅     | The bucket where Flow Logs are stored. |
 | `AWS_ACCOUNT_ID` |    ✅     | Used to locate the logs in the S3 path. |
 | `AWS_REGION` |    ❌     | Region to analyze (default: current region). |
+| `AWS_ACCOUNT_ID` |    ✅     | Your AWS Account ID (used in S3 path). |
 | `S3_PREFIX` |    ❌     | Custom prefix if logs aren't in root. |
 | `YEAR` / `MONTH` / `DAY` |    ❌     | Date to analyze (default: today). |
 | `NAT_EIPS_LIST` |     ✅     | Comma-separated list of your NAT Gateway Elastic IPs (helps filter noise). |
