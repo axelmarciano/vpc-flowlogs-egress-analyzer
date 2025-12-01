@@ -76,14 +76,14 @@ make run docker
 Create a `.env` file or pass these to Docker:
 
 | Variable | Required | Description |
-| :--- | :---: | :--- |
-| `S3_BUCKET_NAME` | ✅ | The bucket where Flow Logs are stored. |
-| `AWS_ACCOUNT_ID` | ✅ | Used to locate the logs in the S3 path. |
-| `AWS_REGION` | ❌ | Region to analyze (default: current region). |
-| `S3_PREFIX` | ❌ | Custom prefix if logs aren't in root. |
-| `YEAR` / `MONTH` / `DAY` | ❌ | Date to analyze (default: today). |
-| `NAT_EIPS_LIST` | ❌ | Comma-separated list of your NAT Gateway Elastic IPs (helps filter noise). |
-| `IP_INFO_API_KEY` | ❌ | Your token from ipinfo.io (for better geo-data). |
+| :--- |:--------:| :--- |
+| `S3_BUCKET_NAME` |    ✅     | The bucket where Flow Logs are stored. |
+| `AWS_ACCOUNT_ID` |    ✅     | Used to locate the logs in the S3 path. |
+| `AWS_REGION` |    ❌     | Region to analyze (default: current region). |
+| `S3_PREFIX` |    ❌     | Custom prefix if logs aren't in root. |
+| `YEAR` / `MONTH` / `DAY` |    ❌     | Date to analyze (default: today). |
+| `NAT_EIPS_LIST` |     ✅     | Comma-separated list of your NAT Gateway Elastic IPs (helps filter noise). |
+| `IP_INFO_API_KEY` |    ❌     | Your token from ipinfo.io (for better geo-data). |
 
 ---
 
