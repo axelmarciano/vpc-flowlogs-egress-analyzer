@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func DefaultEnvValues() map[string]string {
@@ -37,6 +38,7 @@ func LoadConfig() {
 }
 
 func GetEnv(key string) string {
+	LoadConfig()
 	value := os.Getenv(key)
 	if value == "" {
 		defaultValues := DefaultEnvValues()

@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
+	"sync"
+	"vpc_flowlogs_egress_analyzer/internal/config"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"sync"
-	"vpc_flowlogs_egress_analyzer/internal/config"
 )
 
 var (
